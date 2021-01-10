@@ -10,9 +10,8 @@ use processor::args;
 use processor::runner;
 use std::error::Error;
 
-fn main() -> Result<(), Box<dyn Error>>{
+fn main() -> Result<(), Box<dyn Error>> {
     let ctx = args::parse()?;
-    
     if ctx.is_debug_mode() {
         env::set_var("RUST_LOG", "debug");
     }
