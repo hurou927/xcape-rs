@@ -1,21 +1,47 @@
 use clap::{App, Arg};
+use std::collections::HashMap;
 
 use super::context::Context;
+use super::error::XcapeError;
+use std::error::Error;
 
-fn parse_map(map: &str) -> (u8, Vec<u8>) {
-    let v: Vec<&str> = map.split('=').collect();
-    let key = v[0].parse::<u8>().unwrap();
-    let vals: Vec<u8> = v[1].split('|').map(|m| m.parse::<u8>().unwrap()).collect();
-    (key, vals)
+fn parse_map(map: &str) -> Result<(u8, Vec<u8>), Box<dyn Error>> {
+    let v: Vec<&str> = map.split('=').map(|m| m.trim()).collect();
+
+    if v.len() != 2 {
+        return Err(XcapeError::InvalidExpressionArg {
+            map: map.to_string(),
+            reason: "use `=`.".to_string(),
+        })?;
+    }
+
+    let key = match v[0].parse::<u8>() {
+        Ok(x) => x,
+        Err(_) => {
+            return Err(XcapeError::InvalidExpressionArg {
+                map: map.to_string(),
+                reason: "parserInt key error".to_string(),
+            })?
+        }
+    };
+    let vals: Vec<u8> = match v[1].split('|').map(|m| m.trim().parse::<u8>()).collect() {
+        Ok(vs) => vs,
+        Err(_) => {
+            return Err(XcapeError::InvalidArg(
+                "invalid expression(-e). parseInt of value error.".to_string(),
+            ))?
+        }
+    };
+    Ok((key, vals))
 }
 
-pub fn parse() -> Context {
+pub fn parse() -> Result<Context, Box<dyn Error>> {
     let app = App::new("xcape-rs")
         .version("1.0")
         .about("implement xcape with Rust")
         .arg(
             Arg::with_name("map")
-                .help("format: {keycode}={keycode}")
+                .help("format: code=code|code|code")
                 .takes_value(true)
                 .short("e")
                 .long("expression")
@@ -29,14 +55,16 @@ pub fn parse() -> Context {
         )
         .get_matches();
 
+    let mut h: HashMap<u8, Vec<u8>> = HashMap::new();
     if let Some(maps) = app.values_of("map") {
         for map in maps {
-            let v: Vec<&str> = map.split('=').collect();
-            println!("map: {:?} {:?}", map, v);
+            let p = parse_map(map)?;
+            h.insert(p.0, p.1);
         }
     }
 
-    Context::new(app.is_present("debug"))
+    let ctx = Context::new(app.is_present("debug"), h);
+    Ok(ctx)
 }
 
 #[cfg(test)]
@@ -45,8 +73,16 @@ mod tests {
 
     #[test]
     fn parse_map_success() {
-        assert_eq!(parse_map("16=32"), (16, vec![32]));
-        assert_eq!(parse_map(" 16 = 32 "), (16, vec![32]));
-        assert_eq!(parse_map("16=32|53|21"), (16, vec![32, 53, 21]));
+        assert_eq!(parse_map("16=32").unwrap(), (16, vec![32]));
+        assert_eq!(parse_map(" 16 = 32 ").unwrap(), (16, vec![32]));
+        assert_eq!(parse_map("16=32|53|21").unwrap(), (16, vec![32, 53, 21]));
+    }
+
+    #[test]
+    fn parse_map_failure() {
+        assert!(parse_map("256 = 32").is_err());
+        assert!(parse_map("hoge = fuga").is_err());
+        assert!(parse_map("256 = 32*32*52").is_err());
+        assert!(parse_map("423").is_err());
     }
 }
