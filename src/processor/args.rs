@@ -1,7 +1,9 @@
 
 use clap::{App, Arg};
 
-pub fn parse() {
+use super::context::Context; 
+
+pub fn parse() -> Context {
     let app = App::new("xcape-rs")
         .version("1.0")
         .about("implement xcape with Rust")
@@ -27,11 +29,6 @@ pub fn parse() {
         }
     } 
 
-    //println!("flg is {}", if app.is_present("debug") {"ON"} else {"OFF"});
 
-    if app.is_present("debug") {
-        // env::set_var("RUST_LOG", "debug");
-        println!("debug mode");
-    }
-    println!("parse")
+    Context::new(app.is_present("debug"))
 }
