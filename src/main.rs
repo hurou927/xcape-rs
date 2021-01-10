@@ -1,3 +1,11 @@
+
+mod processor;
+use processor::args;
+use processor::runner;
+
 fn main() {
-    println!("Hello, world!");
+
+    args::parse();
+
+    runner::run();
 }
