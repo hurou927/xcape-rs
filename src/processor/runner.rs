@@ -94,6 +94,7 @@ where
 }
 
 fn create_record_context<C>(
+    ctx: &Context,
     ctrl_conn: Arc<C>,
     record_context: record::Context, //u32
 ) -> Result<(), Box<dyn Error>>
@@ -110,11 +111,7 @@ where
         )?
         .check()?;
 
-    // Apply a timeout if we are requested to do so.
-    match std::env::var("X11RB_EXAMPLE_TIMEOUT")
-        .ok()
-        .and_then(|str| str.parse().ok())
-    {
+    match ctx.timeout_sec {
         None => {}
         Some(timeout) => {
             std::thread::spawn(move || {
@@ -134,13 +131,13 @@ fn intercept<'a>(data: &'a Data) -> Result<(&'a Data, bool), Box<dyn Error>> {
     Ok((&data[32..], false))
 }
 
-pub fn run(ctx: Arc<Context>) -> Result<(), Box<dyn Error>> {
+pub fn run(ctx: &Context) -> Result<(), Box<dyn Error>> {
     let connections = create_connections()?;
     let ctrl_conn = Arc::new(connections.0);
     let data_conn = Arc::new(connections.1);
 
     let record_context = ctrl_conn.generate_id()?;
-    create_record_context(Arc::clone(&ctrl_conn), record_context)?;
+    create_record_context(ctx, Arc::clone(&ctrl_conn), record_context)?;
     const START_OF_DATA: u8 = 4;
     const RECORD_FROM_SERVER: u8 = 0;
     println!("hoge");

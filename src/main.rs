@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     logger::init();
     debug!("ctx {:?}", ctx);
 
-    runner::run(Arc::new(ctx));
+    runner::run(&ctx)?;
 
     Ok(())
 }

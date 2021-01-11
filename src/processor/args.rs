@@ -27,9 +27,10 @@ fn parse_map(map: &str) -> Result<(u8, Vec<u8>), Box<dyn Error>> {
     let vals: Vec<u8> = match v[1].split('|').map(|m| m.trim().parse::<u8>()).collect() {
         Ok(vs) => vs,
         Err(_) => {
-            return Err(XcapeError::InvalidArg(
-                "invalid expression(-e). parseInt of value error.".to_string(),
-            ))?
+            return Err(XcapeError::InvalidExpressionArg {
+                map: map.to_string(),
+                reason: "parseInt value error".to_string(),
+            })?
         }
     };
     Ok((key, vals))
@@ -48,6 +49,13 @@ pub fn parse() -> Result<Context, Box<dyn Error>> {
                 .multiple(true),
         )
         .arg(
+            Arg::with_name("timeout")
+                .help("timeout(sec).")
+                .takes_value(true)
+                .short("t")
+                .long("timeout"),
+        )
+        .arg(
             Arg::with_name("debug")
                 .help("debug flag")
                 .short("d")
@@ -63,7 +71,15 @@ pub fn parse() -> Result<Context, Box<dyn Error>> {
         }
     }
 
-    let ctx = Context::new(app.is_present("debug"), h);
+    let timeout_sec: Option<u64> = match app.value_of("timeout").map(|x| {
+        x.parse::<u64>()
+            .map_err(|_| XcapeError::InvalidArg("fail to parse timeout.".to_string()))
+    }) {
+        None => None,
+        Some(res) => Some(res?),
+    };
+
+    let ctx = Context::new(app.is_present("debug"), timeout_sec, h);
     Ok(ctx)
 }
 
