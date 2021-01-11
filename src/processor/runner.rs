@@ -130,13 +130,50 @@ where
     Ok(())
 }
 
+type Data = [u8];
+fn intercept<'a>(data: &'a Data) -> Result<(&'a Data, bool), Box<dyn Error>> {
+    Ok((&data[32..], false))
+}
+
 pub fn run(ctx: Arc<Context>) -> Result<(), Box<dyn Error>> {
     let connections = create_connections()?;
     let ctrl_conn = Arc::new(connections.0);
     let data_conn = Arc::new(connections.1);
 
-    let rc = ctrl_conn.generate_id()?;
-    create_record_context(ctrl_conn, rc)?;
+    let record_context = ctrl_conn.generate_id()?;
+    create_record_context(Arc::clone(&ctrl_conn), record_context)?;
+    const START_OF_DATA: u8 = 4;
+    const RECORD_FROM_SERVER: u8 = 0;
+    println!("hoge");
+    let mut reply_count = 0;
+    for reply in data_conn.record_enable_context(record_context)? {
+        let reply = reply?;
+        println!("fuga");
+        if reply.client_swapped {
+            println!("Byte swapped clients are unsupported");
+        } else if reply.category == RECORD_FROM_SERVER {
+            let mut remaining = &reply.data[..];
+            let mut should_exit = false;
+            let mut data_count = 0;
+            while !remaining.is_empty() {
+                // println!("iter. {}, {}", reply_count, data_count);
+                data_count = data_count + 1;
+                let (r, exit) = intercept(&reply.data)?;
+                remaining = r;
+                if exit {
+                    should_exit = true;
+                }
+            }
+            if should_exit {
+                break;
+            }
+        } else if reply.category == START_OF_DATA {
+            println!("Press Escape to exit...");
+        } else {
+            println!("Got a reply with an unsupported category: {:?}", reply);
+        }
+        reply_count = reply_count + 1;
+    }
 
     println!("main logic here {:?}", ctx.is_debug_mode());
     Ok(())
