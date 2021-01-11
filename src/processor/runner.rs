@@ -117,13 +117,12 @@ where
     {
         None => {}
         Some(timeout) => {
-            let cloned_connection = Arc::clone(&ctrl_conn);
             std::thread::spawn(move || {
+                debug!("start timer({} sec)", timeout);
                 std::thread::sleep(std::time::Duration::from_secs(timeout));
-                cloned_connection
-                    .record_disable_context(record_context)
-                    .unwrap();
-                cloned_connection.sync().unwrap();
+                debug!("diable record context");
+                ctrl_conn.record_disable_context(record_context).unwrap();
+                ctrl_conn.sync().unwrap();
             });
         }
     }
