@@ -8,7 +8,7 @@ use x11rb::connection::RequestConnection;
 use super::error::XcapeError;
 use x11rb::protocol::record::{self, ConnectionExt as _};
 use x11rb::protocol::xproto;
-use x11rb::protocol::xtest::{self, ConnectionExt as _};
+use x11rb::protocol::xtest::{self};
 
 use x11rb::wrapper::ConnectionExt;
 use x11rb::x11_utils::TryParse;
@@ -75,15 +75,39 @@ impl RecordConf {
     }
 }
 
-pub fn run(ctx: Arc<Context>) -> Result<(), Box<dyn Error>> {
-    let connections = create_connections()?;
-    let ctrl_conn = Arc::new(connections.0);
-    let data_conn = Arc::new(connections.1);
+struct XConnections<'a, C, D> {
+    ctrl: &'a C,
+    data: &'a D,
+}
 
+impl<'a, C, D> XConnections<'a, C, D>
+where
+    C: Connection + Send + Sync + 'static,
+    D: Connection + Send + Sync + 'static,
+{
+    fn new(ctrl_conn: &'a C, data_conn: &'a D) -> Self {
+        XConnections {
+            ctrl: ctrl_conn,
+            data: data_conn,
+        }
+    }
+}
+
+fn create_record_context<C>(
+    ctrl_conn: Arc<C>,
+    record_context: record::Context, //u32
+) -> Result<(), Box<dyn Error>>
+where
+    C: Connection + Send + Sync + 'static,
+{
     let record_conf = RecordConf::new();
-    let rc = ctrl_conn.generate_id()?;
     ctrl_conn
-        .record_create_context(rc, 0, &[record::CS::AllClients.into()], &[record_conf.range])?
+        .record_create_context(
+            record_context,
+            0,
+            &[record::CS::AllClients.into()],
+            &[record_conf.range],
+        )?
         .check()?;
 
     // Apply a timeout if we are requested to do so.
@@ -93,14 +117,26 @@ pub fn run(ctx: Arc<Context>) -> Result<(), Box<dyn Error>> {
     {
         None => {}
         Some(timeout) => {
-            let ctrl_conn_cloned = Arc::clone(&ctrl_conn);
+            let cloned_connection = Arc::clone(&ctrl_conn);
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(timeout));
-                ctrl_conn_cloned.record_disable_context(rc).unwrap();
-                ctrl_conn_cloned.sync().unwrap();
+                cloned_connection
+                    .record_disable_context(record_context)
+                    .unwrap();
+                cloned_connection.sync().unwrap();
             });
         }
     }
+    Ok(())
+}
+
+pub fn run(ctx: Arc<Context>) -> Result<(), Box<dyn Error>> {
+    let connections = create_connections()?;
+    let ctrl_conn = Arc::new(connections.0);
+    let data_conn = Arc::new(connections.1);
+
+    let rc = ctrl_conn.generate_id()?;
+    create_record_context(ctrl_conn, rc)?;
 
     println!("main logic here {:?}", ctx.is_debug_mode());
     Ok(())
