@@ -1,4 +1,5 @@
 use super::context::Context;
+use crate::processor::xutil::xproto::KeyPressEvent;
 use std::error::Error;
 use std::sync::Arc;
 use x11rb::connection::Connection;
@@ -8,7 +9,7 @@ use x11rb::connection::RequestConnection;
 use super::error::XcapeError;
 use x11rb::protocol::record::{self, ConnectionExt as _};
 use x11rb::protocol::xproto;
-use x11rb::protocol::xtest::{self};
+use x11rb::protocol::xtest::{self, ConnectionExt as _};
 
 use x11rb::wrapper::ConnectionExt;
 
@@ -108,5 +109,49 @@ impl XUtil {
             }
         }
         Ok(())
+    }
+    fn generate_key_event<C>(
+        fake_key: u8,
+        key_event: u8,
+        ctrl_conn: &Arc<C>,
+        event: &KeyPressEvent,
+    ) -> Result<(), Box<dyn Error>>
+    where
+        C: Connection + Send + Sync,
+    {
+        ctrl_conn.xtest_fake_input(
+            key_event,
+            fake_key,
+            0,
+            event.root,
+            event.root_x,
+            event.root_y,
+            0,
+        )?;
+        Ok(())
+    }
+
+    pub fn generate_key_press_event<C>(
+        fake_key: u8,
+        ctrl_conn: &Arc<C>,
+        event: &KeyPressEvent,
+    ) -> Result<(), Box<dyn Error>>
+    where
+        C: Connection + Send + Sync,
+    {
+        debug!("generate fake press event. key: {}", fake_key);
+        Self::generate_key_event(fake_key, xproto::KEY_PRESS_EVENT, ctrl_conn, event)
+    }
+
+    pub fn generate_key_release_event<C>(
+        fake_key: u8,
+        ctrl_conn: &Arc<C>,
+        event: &KeyPressEvent,
+    ) -> Result<(), Box<dyn Error>>
+    where
+        C: Connection + Send + Sync,
+    {
+        debug!("generate fake press event. key: {}", fake_key);
+        Self::generate_key_event(fake_key, xproto::KEY_RELEASE_EVENT, ctrl_conn, event)
     }
 }

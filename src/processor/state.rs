@@ -7,9 +7,9 @@ use core::cell::Cell;
 use super::context::Context;
 
 pub struct KeyState {
-    fake_keys: Vec<u8>,
-    is_pressed: bool,
-    is_used: bool,
+    pub fake_keys: Vec<u8>,
+    pub is_pressed: bool,
+    pub is_used: bool,
 }
 
 impl KeyState {
@@ -24,7 +24,7 @@ impl KeyState {
 
 pub struct State {
     is_mouse_pressed: Cell<bool>,
-    key_map: RefCell<HashMap<u8, KeyState>>,
+    pub key_map: RefCell<HashMap<u8, KeyState>>,
 }
 
 impl State {
@@ -42,9 +42,6 @@ impl State {
 
     fn update_is_mouse_pressed(&self, is_pressed: bool) {
         self.is_mouse_pressed.set(is_pressed)
-    }
-    fn get_is_mouse_pressed(&self) -> bool {
-        self.is_mouse_pressed.get()
     }
 
     pub fn press_mouse(&self) {
@@ -93,7 +90,7 @@ impl State {
     pub fn update_key_used(&self, is_used: bool) {
         for (_, val) in self.key_map.borrow_mut().iter_mut() {
             if val.is_pressed {
-                val.is_used = true;
+                val.is_used = is_used;
             }
         }
     }

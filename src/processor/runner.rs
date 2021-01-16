@@ -12,12 +12,15 @@ use x11rb::protocol::xtest::{self};
 use x11rb::x11_utils::TryParse;
 
 
+
+
+
 type Data = [u8];
 fn intercept<'a, C>(
     _ctx: &Context,
     state: &State,
     data: &'a Data,
-    ctrl_conn: Arc<C>,
+    ctrl_conn: &Arc<C>,
 ) -> Result<&'a Data, Box<dyn Error>>
 where
     C: Connection + Send + Sync + 'static,
@@ -32,6 +35,20 @@ where
                 None => 
                     state.update_key_used(true)
             };
+
+            match state.key_map.borrow().get(&key) {
+                Some(key_state) if key_state.is_used => {
+                   for fake_key in key_state.fake_keys.iter()  {
+                        XUtil::generate_key_press_event(*fake_key, &ctrl_conn, &event);
+                        XUtil::generate_key_release_event(*fake_key, &ctrl_conn, &event);
+                   }
+                },
+                Some(key_state) => {
+                    debug!("{} is not used.", key);
+                },
+                _ => {}
+            };
+
             Ok(remaining)
         }
         xproto::KEY_RELEASE_EVENT => {
@@ -75,7 +92,7 @@ pub fn run(ctx: &Context) -> Result<(), Box<dyn Error>> {
         } else if reply.category == RECORD_FROM_SERVER {
             let mut remaining = &reply.data[..];
             while !remaining.is_empty() {
-                remaining = intercept(&ctx, &state, &reply.data, Arc::clone(&ctrl_conn))?;
+                remaining = intercept(&ctx, &state, &reply.data, &ctrl_conn)?;
             }
         } else if reply.category == START_OF_DATA {
             debug!("Start Of Date");
