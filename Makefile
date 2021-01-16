@@ -5,6 +5,6 @@ fmt:
 	cargo fmt --verbose
 
 debug:
-	cargo run -- -d
+	cargo run -- -d -e 64=65 #alt=space
 
 

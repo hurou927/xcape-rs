@@ -1,4 +1,8 @@
 use super::context::Context;
+use core::cell::Cell;
+use core::cell::RefCell;
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 use x11rb::connection::Connection;
@@ -237,35 +241,21 @@ pub fn run(ctx: &Context) -> Result<(), Box<dyn Error>> {
     create_record_context(ctx, Arc::clone(&ctrl_conn), record_context)?;
     const START_OF_DATA: u8 = 4;
     const RECORD_FROM_SERVER: u8 = 0;
-    println!("hoge");
-    let mut reply_count = 0;
+    let state = State::new(&ctx);
     for reply in data_conn.record_enable_context(record_context)? {
         let reply = reply?;
-        println!("fuga");
         if reply.client_swapped {
-            println!("Byte swapped clients are unsupported");
+            warn!("Byte swapped clients are unsupported");
         } else if reply.category == RECORD_FROM_SERVER {
             let mut remaining = &reply.data[..];
-            let mut should_exit = false;
-            let mut data_count = 0;
             while !remaining.is_empty() {
-                // println!("iter. {}, {}", reply_count, data_count);
-                data_count = data_count + 1;
-                let (r, exit) = intercept(&reply.data)?;
-                remaining = r;
-                if exit {
-                    should_exit = true;
-                }
-            }
-            if should_exit {
-                break;
+                remaining = intercept(&ctx, &state, &reply.data, Arc::clone(&ctrl_conn))?;
             }
         } else if reply.category == START_OF_DATA {
-            println!("Press Escape to exit...");
+            debug!("Start Of Date");
         } else {
-            println!("Got a reply with an unsupported category: {:?}", reply);
+            warn!("Got a reply with an unsupported category: {:?}", reply);
         }
-        reply_count = reply_count + 1;
     }
 
     println!("main logic here {:?}", ctx.is_debug_mode());
