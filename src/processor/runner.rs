@@ -27,7 +27,11 @@ where
             let (event, remaining) = xproto::KeyPressEvent::try_parse(data)?;
             debug!("KeyPress: {}", event.detail);
             let key = event.detail;
-            let _old_state = state.press_key(key);
+            match state.press_key(key) {
+                Some(_old) => {},
+                None => 
+                    state.update_key_used(true)
+            };
             Ok(remaining)
         }
         xproto::KEY_RELEASE_EVENT => {
@@ -40,6 +44,7 @@ where
         xproto::BUTTON_PRESS_EVENT => {
             let (event, remaining) = xproto::ButtonPressEvent::try_parse(data)?;
             debug!("ButtonPress: {}", event.detail);
+            state.update_key_used(true);
             state.press_mouse();
             Ok(remaining)
         }
