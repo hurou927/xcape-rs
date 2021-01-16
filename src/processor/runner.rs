@@ -30,7 +30,13 @@ where
                 Some(_old) => {}
                 None => state.update_key_used(true),
             };
-
+            Ok(remaining)
+        }
+        xproto::KEY_RELEASE_EVENT => {
+            let (event, remaining) = xproto::KeyReleaseEvent::try_parse(data)?;
+            debug!("KeyRelease: {}", event.detail);
+            let key = event.detail;
+            let _old_value = state.release_key(key);
             match state.key_map.borrow().get(&key) {
                 Some(key_state) if !key_state.is_used => {
                     debug!("{} is not used, so generate fake key events!", key);
@@ -45,14 +51,6 @@ where
                 }
                 _ => {}
             };
-
-            Ok(remaining)
-        }
-        xproto::KEY_RELEASE_EVENT => {
-            let (event, remaining) = xproto::KeyReleaseEvent::try_parse(data)?;
-            debug!("KeyRelease: {}", event.detail);
-            let key = event.detail;
-            let _old_value = state.release_key(key);
             Ok(remaining)
         }
         xproto::BUTTON_PRESS_EVENT => {
