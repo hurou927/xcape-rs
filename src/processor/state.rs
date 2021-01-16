@@ -22,6 +22,7 @@ impl KeyState {
 }
 
 pub struct State {
+    generated_keys: RefCell<[u8; 256]>,
     is_mouse_pressed: Cell<bool>,
     pub key_map: RefCell<HashMap<u8, KeyState>>,
 }
@@ -34,6 +35,7 @@ impl State {
             .map(|(k, v)| (*k, KeyState::new(v.clone())))
             .collect();
         State {
+            generated_keys: RefCell::new([0; 256]),
             is_mouse_pressed: Cell::new(false),
             key_map: RefCell::new(key_map),
         }
@@ -88,9 +90,26 @@ impl State {
 
     pub fn update_key_used(&self, is_used: bool) {
         for (_, val) in self.key_map.borrow_mut().iter_mut() {
-            if val.is_pressed {
+            if val.is_pressed || self.is_mouse_pressed.get() {
                 val.is_used = is_used;
             }
+        }
+    }
+    pub fn add_generated_key(&self, key: u8) {
+        self.generated_keys.borrow_mut()[key as usize] += 1;
+    }
+    pub fn remove_generated_key(&self, key: u8) -> Option<u8> {
+        let idx = key as usize;
+        let mut new = self.generated_keys.borrow_mut();
+        let val = new[idx];
+        if val > 0 {
+            let old = val;
+            new[idx] -= 1;
+            debug!("remove generateed key new:{}, old:{}", new[idx], old);
+            Some(old)
+        } else {
+            debug!("not remove generated key");
+            None
         }
     }
 }

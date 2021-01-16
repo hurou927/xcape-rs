@@ -26,6 +26,7 @@ where
             let (event, remaining) = xproto::KeyPressEvent::try_parse(data)?;
             debug!("KeyPress: {}", event.detail);
             let key = event.detail;
+            state.remove_generated_key(key);
             match state.press_key(key) {
                 Some(_old) => {}
                 None => state.update_key_used(true),
@@ -36,13 +37,16 @@ where
             let (event, remaining) = xproto::KeyReleaseEvent::try_parse(data)?;
             debug!("KeyRelease: {}", event.detail);
             let key = event.detail;
+            state.remove_generated_key(key);
             let _old_value = state.release_key(key);
             match state.key_map.borrow().get(&key) {
                 Some(key_state) if !key_state.is_used => {
                     debug!("{} is not used, so generate fake key events!", key);
                     for fake_key in key_state.fake_keys.iter() {
                         XUtil::generate_key_press_event(*fake_key, &ctrl_conn, &event)?;
+                        state.add_generated_key(*fake_key);
                         XUtil::generate_key_release_event(*fake_key, &ctrl_conn, &event)?;
+                        state.add_generated_key(*fake_key);
                         ctrl_conn.flush()?;
                     }
                 }
