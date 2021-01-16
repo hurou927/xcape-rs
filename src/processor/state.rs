@@ -1,8 +1,7 @@
-
-use std::collections::HashMap;
-use std::collections::hash_map::Entry;
-use core::cell::RefCell;
 use core::cell::Cell;
+use core::cell::RefCell;
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 
 use super::context::Context;
 
@@ -67,7 +66,7 @@ impl State {
     }
 
     pub fn press_key(&self, key: u8) -> Option<bool> {
-       self.update_key_pressed(key, true)
+        self.update_key_pressed(key, true)
     }
     pub fn release_key(&self, key: u8) -> Option<(bool, bool)> {
         match self.key_map.borrow_mut().entry(key) {
@@ -83,7 +82,7 @@ impl State {
 
                 Some(old)
             }
-            Entry::Vacant(_) => None
+            Entry::Vacant(_) => None,
         }
     }
 
@@ -95,4 +94,3 @@ impl State {
         }
     }
 }
-

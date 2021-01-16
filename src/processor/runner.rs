@@ -11,10 +11,6 @@ use x11rb::protocol::xtest::{self};
 
 use x11rb::x11_utils::TryParse;
 
-
-
-
-
 type Data = [u8];
 fn intercept<'a, C>(
     _ctx: &Context,
@@ -31,21 +27,22 @@ where
             debug!("KeyPress: {}", event.detail);
             let key = event.detail;
             match state.press_key(key) {
-                Some(_old) => {},
-                None => 
-                    state.update_key_used(true)
+                Some(_old) => {}
+                None => state.update_key_used(true),
             };
 
             match state.key_map.borrow().get(&key) {
-                Some(key_state) if key_state.is_used => {
-                   for fake_key in key_state.fake_keys.iter()  {
-                        XUtil::generate_key_press_event(*fake_key, &ctrl_conn, &event);
-                        XUtil::generate_key_release_event(*fake_key, &ctrl_conn, &event);
-                   }
-                },
-                Some(key_state) => {
-                    debug!("{} is not used.", key);
-                },
+                Some(key_state) if !key_state.is_used => {
+                    debug!("{} is not used, so generate fake key events!", key);
+                    for fake_key in key_state.fake_keys.iter() {
+                        XUtil::generate_key_press_event(*fake_key, &ctrl_conn, &event)?;
+                        XUtil::generate_key_release_event(*fake_key, &ctrl_conn, &event)?;
+                        ctrl_conn.flush()?;
+                    }
+                }
+                Some(_key_state) => {
+                    debug!("{} is used.", key);
+                }
                 _ => {}
             };
 

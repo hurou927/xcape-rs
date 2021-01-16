@@ -151,7 +151,7 @@ impl XUtil {
     where
         C: Connection + Send + Sync,
     {
-        debug!("generate fake press event. key: {}", fake_key);
+        debug!("generate fake release event. key: {}", fake_key);
         Self::generate_key_event(fake_key, xproto::KEY_RELEASE_EVENT, ctrl_conn, event)
     }
 }
