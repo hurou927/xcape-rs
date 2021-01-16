@@ -38,7 +38,6 @@ where
             debug!("KeyRelease: {}", event.detail);
             let key = event.detail;
             state.remove_generated_key(key);
-            let _old_value = state.release_key(key);
             match state.key_map.borrow().get(&key) {
                 Some(key_state) if !key_state.is_used => {
                     debug!("{} is not used, so generate fake key events!", key);
@@ -55,6 +54,7 @@ where
                 }
                 _ => {}
             };
+            let _old_value = state.release_key(key);
             Ok(remaining)
         }
         xproto::BUTTON_PRESS_EVENT => {
