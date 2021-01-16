@@ -1,4 +1,5 @@
 use super::context::Context;
+use super::state::State;
 use core::cell::Cell;
 use core::cell::RefCell;
 use std::collections::hash_map::Entry;
@@ -112,84 +113,6 @@ where
     Ok(())
 }
 
-#[derive(Debug)]
-struct KeyState {
-    fake_keys: Vec<u8>,
-    is_pressed: bool,
-    is_used: bool,
-}
-
-impl KeyState {
-    fn new(fake_keys: Vec<u8>) -> Self {
-        KeyState {
-            fake_keys: fake_keys,
-            is_pressed: false,
-            is_used: false,
-        }
-    }
-}
-
-#[derive(Debug)]
-struct State {
-    is_mouse_pressed: Cell<bool>,
-    key_map: RefCell<HashMap<u8, KeyState>>,
-}
-
-impl State {
-    fn new(ctx: &Context) -> Self {
-        let key_map = ctx
-            .key_map
-            .iter()
-            .map(|(k, v)| (*k, KeyState::new(v.clone())))
-            .collect();
-        State {
-            is_mouse_pressed: Cell::new(false),
-            key_map: RefCell::new(key_map),
-        }
-    }
-
-    fn update_is_mouse_pressed(&self, is_pressed: bool) {
-        self.is_mouse_pressed.set(is_pressed)
-    }
-    fn get_is_mouse_pressed(&self) -> bool {
-        self.is_mouse_pressed.get()
-    }
-
-    // return old value
-    fn update_key_pressed(&self, key: u8, is_pressed: bool) -> Option<bool> {
-        let old = match self.key_map.borrow_mut().entry(key) {
-            Entry::Occupied(o) => {
-                let new = o.into_mut();
-                let old = new.is_pressed;
-                new.is_pressed = is_pressed;
-                Some(old)
-            }
-            Entry::Vacant(_) => None,
-        };
-        debug!("udpate key. key:{}, new:{}, old:{:?}", key, is_pressed, old);
-        old
-    }
-
-    fn release_key(&self, key: u8) {
-        match self.key_map.borrow_mut().entry(key) {
-            Entry::Occupied(o) => {
-                let new = o.into_mut();
-                debug!("Update State: key:{}, is_pressed:{}, is_used:{}", key, new.is_pressed, new.is_used);
-                new.is_pressed = false;
-                new.is_used = false;
-            }
-            Entry::Vacant(_) => {} 
-        };
-    }
-
-    fn update_key_used(&self, is_used: bool) {
-        for (_, val) in self.key_map.borrow_mut().iter_mut() {
-            if val.is_pressed { 
-                val.is_used = true;
-            }
-        }
-    }
-}
 
 type Data = [u8];
 fn intercept<'a, C>(
@@ -206,26 +129,26 @@ where
             let (event, remaining) = xproto::KeyPressEvent::try_parse(data)?;
             debug!("KeyPress: {}", event.detail);
             let key = event.detail;
-            let _old_state = state.update_key_pressed(key, true);
+            let _old_state = state.press_key(key);
             Ok(remaining)
         }
         xproto::KEY_RELEASE_EVENT => {
             let (event, remaining) = xproto::KeyReleaseEvent::try_parse(data)?;
             debug!("KeyRelease: {}", event.detail);
             let key = event.detail;
-            state.release_key(key);
+            let _old_value = state.release_key(key);
             Ok(remaining)
         }
         xproto::BUTTON_PRESS_EVENT => {
             let (event, remaining) = xproto::ButtonPressEvent::try_parse(data)?;
             debug!("ButtonPress: {}", event.detail);
-            state.update_is_mouse_pressed(true);
+            state.press_mouse();
             Ok(remaining)
         }
         xproto::BUTTON_RELEASE_EVENT => {
             let (event, remaining) = xproto::ButtonReleaseEvent::try_parse(data)?;
             debug!("ButtonRelease: {}", event.detail);
-            state.update_is_mouse_pressed(false);
+            state.release_mouse();
             Ok(remaining)
         }
         _ => Ok(&data[32..]),
