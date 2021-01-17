@@ -3,7 +3,7 @@ name = "xcape-rs"
 version = "0.1.0"
 authors = ["hurou927 <god.be.with.ye.fs@gmail.com>"]
 edition = "2018"
-
+email= "god.be.with.ye.fs@gmail.com"
 
 description = "implementation of XCAPE in Rust"
 repository = "https://github.com/hurou927/xcape-rs"
