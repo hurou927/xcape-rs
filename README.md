@@ -1,11 +1,18 @@
 # xcape-rs
 
-Wip...
+Rust-powered XCAPE
+
+xcape: https://github.com/alols/xcape
+
+> xcape allows you to use a modifier key as another key when pressed and released on its own. Note that it is slightly slower than pressing the original key, because the pressed event does not occur until the key is released.
+
+
+## Usage
 
 ```sh
 $ cargo run -- -h
 
-implement xcape with Rust
+implement xcape  Rust
 
 USAGE:
     xcape-rs [FLAGS] [OPTIONS]
