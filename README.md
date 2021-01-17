@@ -1,5 +1,7 @@
 # xcape-rs
 
+![Build](https://github.com/hurou927/xcape-rs/workflows/test/badge.svg)
+
 Rust-powered XCAPE
 
 xcape: https://github.com/alols/xcape
