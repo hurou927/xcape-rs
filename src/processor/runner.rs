@@ -5,9 +5,8 @@ use std::error::Error;
 use std::sync::Arc;
 use x11rb::connection::Connection;
 
-use x11rb::protocol::record::{self, ConnectionExt as _};
+use x11rb::protocol::record::ConnectionExt as _;
 use x11rb::protocol::xproto;
-use x11rb::protocol::xtest::{self};
 
 use x11rb::x11_utils::TryParse;
 
@@ -28,7 +27,7 @@ where
             let key = event.detail;
             if let Some(_) = state.remove_generated_key(key) {
                 debug!("Ignore generated key: {}", key);
-                return Ok(remaining); 
+                return Ok(remaining);
             }
             match state.press_key(key) {
                 Some(_old) => {}
@@ -42,7 +41,7 @@ where
             let key = event.detail;
             if let Some(_) = state.remove_generated_key(key) {
                 debug!("Ignore generated key: {}", key);
-                return Ok(remaining); 
+                return Ok(remaining);
             }
             match state.key_map.borrow().get(&key) {
                 Some(key_state) if !key_state.is_used => {

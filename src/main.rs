@@ -3,7 +3,6 @@ extern crate log;
 extern crate env_logger as logger;
 
 use std::env;
-use std::sync::Arc;
 
 mod processor;
 use processor::args;
