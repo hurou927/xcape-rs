@@ -91,7 +91,7 @@ impl XUtil {
             .record_create_context(
                 record_context,
                 0,
-                &[record::CS::AllClients.into()],
+                &[record::CS::ALL_CLIENTS.into()],
                 &[record_conf.range],
             )?
             .check()?;
