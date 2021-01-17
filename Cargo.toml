@@ -4,6 +4,12 @@ version = "0.1.0"
 authors = ["hurou927 <god.be.with.ye.fs@gmail.com>"]
 edition = "2018"
 
+
+description = "implementation of XCAPE in Rust"
+repository = "https://github.com/hurou927/xcape-rs"
+license = "MIT"
+readme = "README.md"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
