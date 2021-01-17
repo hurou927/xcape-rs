@@ -30,3 +30,7 @@ OPTIONS:
 
 ```
 
+## Links
+
+- crate.io: https://crates.io/crates/xcape-rs
+
