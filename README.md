@@ -30,6 +30,12 @@ OPTIONS:
 
 ```
 
+
+### Sample
+
+`xcape -e 'Shift_L=Escape;Control_L=Control_L|O'`
+
+
 ## Links
 
 - crate.io: https://crates.io/crates/xcape-rs
