@@ -51,30 +51,35 @@ where
             let (event, remaining) = xproto::KeyReleaseEvent::try_parse(data)?;
             debug!("KeyRelease: {}", event.detail);
             let key = event.detail;
+
+            // if released key is auto-generated,
+            // do nothing
             if let Ok(_) = state.check_and_unmark_auto_generated_key(key) {
                 debug!("Ignore generated key: {}", key);
-                return Ok(remaining);
-            }
+                Ok(remaining)
+            } else {
+                if let Some(key_state) = state.remapped_key_states.borrow().get(&key) {
+                    // if mod key is not used as modifier
+                    // send fake keys
+                    if !key_state.will_be_used_as_modifier {
+                        debug!("{} is not used, so generate fake key events!", key);
+                        for fake_key in key_state.fake_keys.iter() {
+                            // Generate KEY_PRESS_EVENT and mark flag
+                            XUtil::generate_key_press_event(*fake_key, &ctrl_conn, &event)?;
+                            state.mark_auto_generated_key(*fake_key);
 
-            if let Some(key_state) = state.remapped_key_states.borrow().get(&key) {
-                if !key_state.will_be_used_as_modifier {
-                    debug!("{} is not used, so generate fake key events!", key);
-                    for fake_key in key_state.fake_keys.iter() {
-                        // Generate KEY_PRESS_EVENT and mark flag
-                        XUtil::generate_key_press_event(*fake_key, &ctrl_conn, &event)?;
-                        state.mark_auto_generated_key(*fake_key);
+                            // Generate KEY_RELEASE_EVENT and mark flag
+                            XUtil::generate_key_release_event(*fake_key, &ctrl_conn, &event)?;
+                            state.mark_auto_generated_key(*fake_key);
 
-                        // Generate KEY_RELEASE_EVENT and mark flag
-                        XUtil::generate_key_release_event(*fake_key, &ctrl_conn, &event)?;
-                        state.mark_auto_generated_key(*fake_key);
-
-                        // Send pending event
-                        ctrl_conn.flush()?;
+                            // Send pending event
+                            ctrl_conn.flush()?;
+                        }
                     }
                 }
+                let _ = state.release_key(key);
+                Ok(remaining)
             }
-            let _ = state.release_key(key);
-            Ok(remaining)
         }
         xproto::BUTTON_PRESS_EVENT => {
             let (event, remaining) = xproto::ButtonPressEvent::try_parse(data)?;
