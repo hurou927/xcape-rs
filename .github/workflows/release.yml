@@ -14,12 +14,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
+
+      - name: Install latest
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
       - name: Login
         run: cargo login ${CRATES_IO_TOKEN}
         env:
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-      - name: Publish 
+      - name: Publish
         run: cargo publish
 
 
@@ -32,4 +40,4 @@ jobs:
           tag_name: release-${{ github.ref }}
           release_name: Release ${{ github.ref }}
           draft: false
-          prerelease: false 
+          prerelease: false
