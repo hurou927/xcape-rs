@@ -33,8 +33,11 @@ OPTIONS:
 
 ### Sample
 
-`xcape -e 'Shift_L=Escape;Control_L=Control_L|O'`
+`xcape -e '64=38' # alt=space`
 
+## Todo
+
+- get Keysym from String
 
 ## Links
 
